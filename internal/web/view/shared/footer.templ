@@ -1,0 +1,40 @@
+package shared
+
+import (
+	"polar-bear/internal/runtimemeta"
+	"time"
+)
+
+templ Footer(start *time.Time, devMode bool, rm *runtimemeta.RuntimeMeta) {
+	<footer class="text-slate-500 text-center text-sm pt-10 pb-10">
+		<p>
+			<a class="hover:underline" href="https://github.com/geberl/polar-bear" target="_blank">Polar Bear</a>
+			{ rm.Version } ({ rm.RevisionShort })
+			&mdash;
+			<a class="hover:underline" href="/info">Info</a>
+			&mdash;
+			<a
+				class="hover:underline"
+				href="https://github.com/geberl/polar-bear/blob/main/LICENSE"
+				target="_blank"
+			>License</a>
+		</p>
+		<p>
+			Served in <i>{ getDuration(start) }</i> from <i>{ rm.HostName }</i> on { getRequestTimestamp() }
+		</p>
+	</footer>
+}
+
+func getDuration(start *time.Time) string {
+	if start == nil {
+		return "n/a"
+	}
+
+	end := time.Now()
+	latency := end.Sub(*start)
+	return latency.Round(time.Microsecond).String()
+}
+
+func getRequestTimestamp() string {
+	return time.Now().Format(time.RFC3339)
+}

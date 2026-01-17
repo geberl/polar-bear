@@ -1,0 +1,29 @@
+package shared
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	"polar-bear/internal/runtimemeta"
+	"time"
+)
+
+templ Base(
+	title string,
+	start *time.Time,
+	devMode bool,
+	rm *runtimemeta.RuntimeMeta,
+	nss []*corev1.Namespace,
+	activeClusterItem string,
+	activeNamespaceItem string,
+) {
+	<!DOCTYPE html>
+	<html lang="en">
+		@Header(title, devMode)
+		<body class="bg-gray-50 p-4">
+			@Sidebar(rm, nss, activeClusterItem, activeNamespaceItem)
+			<div class="p-4 sm:ml-64">
+				{ children... }
+			</div>
+			@Footer(start, devMode, rm)
+		</body>
+	</html>
+}

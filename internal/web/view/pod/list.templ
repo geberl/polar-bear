@@ -1,0 +1,165 @@
+package pod
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+)
+
+templ ListView(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	ns string,
+	pds []*corev1.Pod,
+	nss []*corev1.Namespace,
+) {
+	@shared.Base("Pods", start, cfg.DevMode, rm, nss, "", ns) {
+		<header class="py-8">
+			<h1 class="text-3xl font-extrabold">Pods</h1>
+		</header>
+		<div class="space-y-5">
+			<div class="px-6 py-3 bg-white shadow-md rounded-lg" hx-ext="ws" ws-connect={ fmt.Sprintf("/ws/%s", ns) }>
+				@PodList(ns, pds, "true")
+			</div>
+		</div>
+	}
+}
+
+templ PodList(ns string, pds []*corev1.Pod, swapMethod string) {
+	<div id="pods-container" hx-swap-oob={ swapMethod } class="divide-y divide-solid">
+		if len(pds) > 0 {
+			for _, pd := range pds {
+				@PodItem(pd)
+			}
+		} else {
+			No Pods found in Namespace <i>{ ns }</i>
+		}
+	</div>
+}
+
+templ PodItem(pd *corev1.Pod) {
+	<div class="py-3" id={ pd.Name }>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesPodSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.PodLink(pd.Namespace, pd.Name) }
+			>
+				{ pd.Name }
+			</a>
+			@shared.Badge(string(pd.Status.Phase), getPodPhaseColor(pd.Status.Phase))
+		</div>
+		<div class="text-gray-600 group relative w-full pl-8 whitespace-nowrap overflow-hidden text-ellipsis">
+			<span>Created { pd.CreationTimestamp.UTC().Format(time.RFC3339) }</span>
+			<span>| Node { pd.Spec.NodeName }</span>
+		</div>
+		<div class="pl-16 pt-2 w-full">
+			for n, ci := range pd.Spec.Containers {
+				@Container(n+1, ci, pd.Status.ContainerStatuses)
+			}
+		</div>
+	</div>
+}
+
+func getPodPhaseColor(phase corev1.PodPhase) string {
+	switch phase {
+	case corev1.PodPending:
+		return "yellow"
+	case corev1.PodRunning:
+		return "green"
+	case corev1.PodSucceeded:
+		return "blue"
+	case corev1.PodFailed:
+		return "red"
+	default:
+		return "gray"
+	}
+}
+
+templ Container(count int, cnt corev1.Container, css []corev1.ContainerStatus) {
+	<div class="flex flex-row justify-between">
+		<div
+			class="mt-0.5 bg-gray-400 text-white font-bold uppercase text-xs text-center content-center size-5 rounded shrink-0"
+		>
+			{ fmt.Sprintf("%d", count) }
+		</div>
+		<div class="text-gray-400 flex-grow text-left pl-2 whitespace-nowrap overflow-hidden text-ellipsis">
+			<span>{ cnt.Name } &ndash;</span>
+			<a class="hover:underline" href={ shared.RegistryLink(getImageName(cnt)) } target="_blank">
+				{ getImageName(cnt) }
+			</a>
+			<span>({ getImageVersion(cnt) })</span>
+			<span>&ndash; { fmt.Sprintf("%d", getRestartCount(cnt, css)) } restarts</span>
+		</div>
+		@containerStatus(getContainerStatus(cnt, css))
+	</div>
+}
+
+templ containerStatus(name string) {
+	switch name {
+		case "Waiting":
+			<div class="text-yellow-500 font-bold uppercase text-xs pr-3">{ name }</div>
+		case "Running":
+			<div class="text-green-500 font-bold uppercase text-xs pr-3">{ name }</div>
+		case "Terminated":
+			<div class="text-red-500 font-bold uppercase text-xs pr-3">{ name }</div>
+		default:
+			<div class="text-gray-500 font-bold uppercase text-xs pr-3">{ name }</div>
+	}
+}
+
+func getRestartCount(cnt corev1.Container, css []corev1.ContainerStatus) int {
+	for _, containerStatus := range css {
+		if containerStatus.Name == cnt.Name {
+			return int(containerStatus.RestartCount)
+		}
+	}
+	return 0
+}
+
+func getContainerStatus(cnt corev1.Container, css []corev1.ContainerStatus) string {
+	for _, containerStatus := range css {
+		if containerStatus.Name == cnt.Name {
+			if containerStatus.State.Waiting != nil {
+				return "Waiting"
+			}
+			if containerStatus.State.Running != nil {
+				return "Running"
+			}
+			if containerStatus.State.Terminated != nil {
+				return "Terminated"
+			}
+		}
+	}
+	return "n/a"
+}
+
+func getImageName(cnt corev1.Container) string {
+	imageName := cnt.Image
+
+	imageSegments := strings.Split(imageName, ":")
+	if len(imageSegments) >= 2 {
+		return imageSegments[0]
+	}
+
+	return imageName
+}
+
+func getImageVersion(cnt corev1.Container) string {
+	imageName := cnt.Image
+	imageVersion := "???"
+
+	imageSegments := strings.Split(imageName, ":")
+	if len(imageSegments) >= 2 {
+		return imageSegments[1]
+	}
+
+	return imageVersion
+}

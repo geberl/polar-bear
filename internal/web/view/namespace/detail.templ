@@ -1,0 +1,129 @@
+package namespace
+
+import (
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+)
+
+type Data struct {
+	Start  *time.Time
+	Config *config.Config
+	Meta   *runtimemeta.RuntimeMeta
+
+	Namespace  *corev1.Namespace
+	Namespaces []*corev1.Namespace
+
+	PodCount         uint
+	ReplicaSetCount  uint
+	StatefulSetCount uint
+	DeploymentCount  uint
+	ServiceCount     uint
+	IngressCount     uint
+}
+
+templ DetailView(d *Data) {
+	@shared.Base("Namespace", d.Start, d.Config.DevMode, d.Meta, d.Namespaces, "", d.Namespace.Name) {
+		<header class="py-8">
+			<h1 class="text-3xl font-extrabold">{ d.Namespace.Name }</h1>
+		</header>
+		<div class="space-y-5">
+			<div class="px-6 py-3 bg-white shadow-md rounded-lg">
+				@NamespaceDetails(
+					d.Namespace,
+					d.PodCount,
+					d.ReplicaSetCount,
+					d.StatefulSetCount,
+					d.DeploymentCount,
+					d.ServiceCount,
+					d.IngressCount,
+				)
+			</div>
+		</div>
+	}
+}
+
+templ NamespaceDetails(
+	ns *corev1.Namespace,
+	pdc uint,
+	rsc uint,
+	stsc uint,
+	deployc uint,
+	svcc uint,
+	ingc uint,
+) {
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesPodSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.PodsLink(ns.Name) }
+			>
+				Pods
+			</a>
+			<b>{ pdc }</b>
+		</div>
+	</div>
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesReplicaSetSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.ReplicaSetsLink(ns.Name) }
+			>
+				ReplicaSets
+			</a>
+			<b>{ rsc }</b>
+		</div>
+	</div>
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesStatefulSetSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.StatefulSetsLink(ns.Name) }
+			>
+				StatefulSets
+			</a>
+			<b>{ stsc }</b>
+		</div>
+	</div>
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesDeploymentSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.DeploymentsLink(ns.Name) }
+			>
+				Deployments
+			</a>
+			<b>{ deployc }</b>
+		</div>
+	</div>
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesServiceSvg()
+			<span
+				class="font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+			>
+				Services
+			</span>
+			<b>{ svcc }</b>
+		</div>
+	</div>
+	<div class="py-3">
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesIngressSvg()
+			<span
+				class="font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+			>
+				Ingresses
+			</span>
+			<b>{ ingc }</b>
+		</div>
+	</div>
+}

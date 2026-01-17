@@ -1,0 +1,11 @@
+package shared
+
+templ Taint(key string, value string, effect string) {
+	<span class="flex items-center px-2 py-1 text-xs rounded max-w-full bg-red-100">
+		<span class="font-medium truncate text-red-700">{ key }</span>
+		<span class="mx-1 flex-shrink-0 text-red-700">=</span>
+		<span class="font-semibold truncate min-w-0 text-red-800">{ value }</span>
+		<span class="mx-1 flex-shrink-0 text-red-700">:</span>
+		<span class="font-medium italic truncate min-w-0 text-red-800">{ effect }</span>
+	</span>
+}

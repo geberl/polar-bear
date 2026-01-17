@@ -1,0 +1,70 @@
+package shared
+
+import (
+	"fmt"
+	"strings"
+)
+
+func labelContainerSpanClass(key string) string {
+	base := "flex items-center px-2 py-1 text-xs rounded max-w-full"
+	if strings.HasPrefix(key, "kubernetes.io") {
+		return fmt.Sprintf("%s bg-blue-100", base)
+	}
+	if strings.HasPrefix(key, "topology.kubernetes.io") {
+		return fmt.Sprintf("%s bg-green-100", base)
+	}
+	if strings.HasPrefix(key, "node-role.kubernetes.io") {
+		return fmt.Sprintf("%s bg-orange-100", base)
+	}
+	return fmt.Sprintf("%s bg-gray-100", base)
+}
+
+func labelKeySpanClass(key string) string {
+	base := "font-medium truncate"
+	if strings.HasPrefix(key, "kubernetes.io") {
+		return fmt.Sprintf("%s text-blue-700", base)
+	}
+	if strings.HasPrefix(key, "topology.kubernetes.io") {
+		return fmt.Sprintf("%s text-green-700", base)
+	}
+	if strings.HasPrefix(key, "node-role.kubernetes.io") {
+		return fmt.Sprintf("%s text-orange-700", base)
+	}
+	return fmt.Sprintf("%s text-gray-700", base)
+}
+
+func labelSeparatorSpanClass(key string) string {
+	base := "mx-1 flex-shrink-0"
+	if strings.HasPrefix(key, "kubernetes.io") {
+		return fmt.Sprintf("%s text-blue-500", base)
+	}
+	if strings.HasPrefix(key, "topology.kubernetes.io") {
+		return fmt.Sprintf("%s text-green-500", base)
+	}
+	if strings.HasPrefix(key, "node-role.kubernetes.io") {
+		return fmt.Sprintf("%s text-orange-500", base)
+	}
+	return fmt.Sprintf("%s text-gray-500", base)
+}
+
+func labelValueSpanClass(key string) string {
+	base := "font-semibold truncate min-w-0"
+	if strings.HasPrefix(key, "kubernetes.io") {
+		return fmt.Sprintf("%s text-blue-900", base)
+	}
+	if strings.HasPrefix(key, "topology.kubernetes.io") {
+		return fmt.Sprintf("%s text-green-900", base)
+	}
+	if strings.HasPrefix(key, "node-role.kubernetes.io") {
+		return fmt.Sprintf("%s text-orange-900", base)
+	}
+	return fmt.Sprintf("%s text-gray-900", base)
+}
+
+templ Label(key string, value string) {
+	<span class={ labelContainerSpanClass(key) }>
+		<span class={ labelKeySpanClass(key) }>{ key }</span>
+		<span class={ labelSeparatorSpanClass(key) }>=</span>
+		<span class={ labelValueSpanClass(key) }>{ value }</span>
+	</span>
+}

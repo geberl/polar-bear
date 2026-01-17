@@ -1,0 +1,15 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: polar-bear
+  labels:
+    app.kubernetes.io/name: polar-bear
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: polar-bear
+subjects:
+  - kind: ServiceAccount
+    name: polar-bear
+    namespace: my-namespace

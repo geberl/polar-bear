@@ -1,0 +1,19 @@
+package shared
+
+templ PropertyRow(key string, value string) {
+	<div class="flex justify-between items-center">
+		<span class="text-gray-600">{ key }:</span>
+		<span class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+			{ value }
+		</span>
+	</div>
+}
+
+templ PropertyPanel(title string) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">{ title }</h2>
+		<div class="space-y-3">
+			{ children... }
+		</div>
+	</div>
+}

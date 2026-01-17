@@ -1,0 +1,15 @@
+package shared
+
+templ Image(names []string, size int64) {
+	<div class="border-l-4 border-blue-500 pl-4">
+		<div class="font-mono text-sm">{ getLastName(names) }</div>
+		<div class="text-gray-600 text-xs">Size: { ToHumanReadableBytes(size) }</div>
+	</div>
+}
+
+func getLastName(slice []string) string {
+	if len(slice) == 0 {
+		return "n/a"
+	}
+	return slice[len(slice)-1]
+}

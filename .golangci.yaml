@@ -1,0 +1,60 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - depguard
+    - errcheck
+    - exhaustive
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - promlinter
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - testpackage
+    - unparam
+    - unused
+    - whitespace
+  settings:
+    depguard:
+      rules:
+        protobuf:
+          files:
+            - $all
+          deny:
+            - pkg: github.com/gogo/protobuf
+              desc: Please use 'google.golang.org/protobuf' instead
+            - pkg: github.com/golang/protobuf
+              desc: Please use 'google.golang.org/protobuf' instead
+    exhaustive:
+      default-signifies-exhaustive: true
+    lll:
+      line-length: 120
+      tab-width: 4
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

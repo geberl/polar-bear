@@ -1,0 +1,462 @@
+package pod
+
+import (
+	"fmt"
+	corev1 "k8s.io/api/core/v1"
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+	"time"
+)
+
+templ DetailView(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	ns string,
+	name string,
+	pd *corev1.Pod,
+	nss []*corev1.Namespace,
+) {
+	@shared.Base("Pod", start, cfg.DevMode, rm, nss, "Pods", ns) {
+		<header class="py-8">
+			<h3 class="pb-3"><a class="hover:underline" href={ shared.PodsLink(ns) }>Pods</a></h3>
+			<h1 class="text-3xl font-extrabold">{ name }</h1>
+		</header>
+		<div class="space-y-5">
+			if pd != nil {
+				// DONE
+				@podInformation(pd)
+				@podNetworkAddresses(pd)
+				@podLabels(pd)
+				@podAnnotations(pd)
+				@podTolerations(pd)
+				// TODO
+				@podStatus(pd)
+				@podContainers(pd)
+				@podInitContainers(pd)
+				@podVolumes(pd)
+				@podOwnedBy(pd)
+				@podEvents(pd)
+			} else {
+				<div class="px-6 py-3 bg-white shadow-md rounded-lg">
+					<div class="py-3" id="na">Pod <i>{ name }</i> not found in namespace <i>{ ns }</i></div>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ podStatus(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Pod Status</h2>
+		<div class="space-y-3">
+			<div class="flex justify-between">
+				<span class="text-gray-600">Phase:</span>
+				<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">Running</div>
+			</div>
+			<div class="flex justify-between">
+				<span class="text-gray-600">Ready:</span>
+				<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">True</div>
+			</div>
+			<div class="flex justify-between">
+				<span class="text-gray-600">Initialized:</span>
+				<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">True</div>
+			</div>
+			<div class="flex justify-between">
+				<span class="text-gray-600">Containers Ready:</span>
+				<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">True</div>
+			</div>
+			<div class="flex justify-between">
+				<span class="text-gray-600">Pod Scheduled:</span>
+				<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">True</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podInformation(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Pod Information</h2>
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Created</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ pd.CreationTimestamp.UTC().Format(time.RFC3339) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Namespace</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					<a href={ shared.NamespaceLink(pd.ObjectMeta.Namespace) } class="text-blue-600 hover:underline">
+						{ pd.ObjectMeta.Namespace }
+					</a>
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Node</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					<a href={ shared.NodeLink(pd.Spec.NodeName) } class="text-blue-600 hover:underline">
+						{ pd.Spec.NodeName }
+					</a>
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">UID</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", pd.ObjectMeta.UID) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">QoS Class</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">{ pd.Status.QOSClass }</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Restart Policy</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">{ pd.Spec.RestartPolicy }</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Service Account</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">{ pd.Spec.ServiceAccountName }</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Priority Class</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					switch len(pd.Spec.PriorityClassName) > 0 {
+						case false:
+							{ "-" }
+						case true:
+							{ pd.Spec.PriorityClassName }
+					}
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">DNS Policy</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">{ pd.Spec.DNSPolicy }</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podNetworkAddresses(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Network Addresses</h2>
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Pod IP</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					{ fmt.Sprintf("%v", pd.Status.PodIP) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Host IP</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					{ fmt.Sprintf("%v", pd.Status.HostIP) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Hostname</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					switch len(pd.Spec.Hostname) > 0 {
+						case false:
+							{ "-" }
+						case true:
+							{ fmt.Sprintf("%v", pd.Spec.Hostname) }
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podContainers(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Containers (2)</h2>
+		<div class="space-y-4">
+			<!-- Container 1 -->
+			<div class="border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center justify-between mb-3">
+					<h3 class="text-lg font-medium text-gray-800">app</h3>
+					<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">
+						Running
+					</div>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+					<div class="space-y-1">
+						<div class="text-gray-600">Image</div>
+						<div class="font-mono bg-gray-50 p-2 rounded break-all">docker.io/library/nginx:1.25.3</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Image ID</div>
+						<div class="font-mono bg-gray-50 p-2 rounded truncate">
+							docker.io/library/nginx@sha256:abc123...
+						</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Container ID</div>
+						<div class="font-mono bg-gray-50 p-2 rounded truncate">containerd://def456...</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Restart Count</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">0</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Started</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">2025-10-20T14:32:18Z</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Ready</div>
+						<div class="bg-gray-50 p-2 rounded">
+							<span
+								class="bg-green-200 text-green-500 font-bold uppercase text-xs px-2 py-0.5 rounded"
+							>True</span>
+						</div>
+					</div>
+				</div>
+				<div class="mt-3 pt-3 border-t border-gray-200">
+					<div class="text-gray-600 text-sm mb-2">Ports</div>
+					<div class="flex flex-wrap gap-2">
+						<span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">80/TCP</span>
+						<span class="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">443/TCP</span>
+					</div>
+				</div>
+				<div class="mt-3 pt-3 border-t border-gray-200">
+					<div class="text-gray-600 text-sm mb-2">Resource Requests</div>
+					<div class="grid grid-cols-2 gap-2 text-sm">
+						<div class="font-mono bg-gray-50 p-2 rounded">CPU: 100m</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">Memory: 128Mi</div>
+					</div>
+				</div>
+				<div class="mt-3 pt-3 border-t border-gray-200">
+					<div class="text-gray-600 text-sm mb-2">Resource Limits</div>
+					<div class="grid grid-cols-2 gap-2 text-sm">
+						<div class="font-mono bg-gray-50 p-2 rounded">CPU: 500m</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">Memory: 512Mi</div>
+					</div>
+				</div>
+			</div>
+			<!-- Container 2 (sidecar) -->
+			<div class="border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center justify-between mb-3">
+					<h3 class="text-lg font-medium text-gray-800">sidecar</h3>
+					<div class="bg-green-200 text-green-500 font-bold uppercase text-xs px-3 py-1 rounded-full">
+						Running
+					</div>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+					<div class="space-y-1">
+						<div class="text-gray-600">Image</div>
+						<div class="font-mono bg-gray-50 p-2 rounded break-all">docker.io/library/busybox:1.36</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Image ID</div>
+						<div class="font-mono bg-gray-50 p-2 rounded truncate">
+							docker.io/library/busybox@sha256:xyz789...
+						</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Container ID</div>
+						<div class="font-mono bg-gray-50 p-2 rounded truncate">containerd://ghi012...</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Restart Count</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">0</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Started</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">2025-10-20T14:32:19Z</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Ready</div>
+						<div class="bg-gray-50 p-2 rounded">
+							<span
+								class="bg-green-200 text-green-500 font-bold uppercase text-xs px-2 py-0.5 rounded"
+							>True</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podInitContainers(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Init Containers (1)</h2>
+		<div class="space-y-4">
+			<div class="border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center justify-between mb-3">
+					<h3 class="text-lg font-medium text-gray-800">init-config</h3>
+					<div class="bg-gray-200 text-gray-500 font-bold uppercase text-xs px-3 py-1 rounded-full">
+						Terminated
+					</div>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+					<div class="space-y-1">
+						<div class="text-gray-600">Image</div>
+						<div class="font-mono bg-gray-50 p-2 rounded break-all">docker.io/library/alpine:3.18</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Restart Count</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">0</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Exit Code</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">0</div>
+					</div>
+					<div class="space-y-1">
+						<div class="text-gray-600">Finished</div>
+						<div class="font-mono bg-gray-50 p-2 rounded">2025-10-20T14:32:17Z</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podVolumes(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Volumes (3)</h2>
+		<div class="space-y-3">
+			<div class="border-l-4 border-purple-500 pl-4">
+				<div class="font-medium text-gray-800">config-volume</div>
+				<div class="text-sm text-gray-600 mt-1">
+					<span class="font-mono bg-gray-50 px-2 py-1 rounded">ConfigMap: app-config</span>
+				</div>
+			</div>
+			<div class="border-l-4 border-purple-500 pl-4">
+				<div class="font-medium text-gray-800">data-volume</div>
+				<div class="text-sm text-gray-600 mt-1">
+					<span class="font-mono bg-gray-50 px-2 py-1 rounded">PersistentVolumeClaim: app-data</span>
+				</div>
+			</div>
+			<div class="border-l-4 border-purple-500 pl-4">
+				<div class="font-medium text-gray-800">kube-api-access-xxxxx</div>
+				<div class="text-sm text-gray-600 mt-1">
+					<span class="font-mono bg-gray-50 px-2 py-1 rounded">Projected (ServiceAccountToken)</span>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ podOwnedBy(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Owned By</h2>
+		<div class="space-y-2">
+			<div class="flex items-center space-x-3">
+				<span class="text-gray-600">Controller:</span>
+				<span class="font-mono bg-blue-50 text-blue-700 px-3 py-1 rounded">ReplicaSet/my-app-5d4f8b7c9d</span>
+			</div>
+			<div class="flex items-center space-x-3">
+				<span class="text-gray-600">UID:</span>
+				<span class="font-mono text-sm bg-gray-50 px-2 py-1 rounded">b2c3d4e5-f6a7-8901-bcde-f23456789012</span>
+			</div>
+		</div>
+	</div>
+}
+
+templ podTolerations(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Tolerations ({ len(pd.Spec.Tolerations) })</h2>
+		<div class="mt-3 space-y-2 text-sm">
+			if len(pd.Spec.Tolerations) > 0 {
+				for _, tol := range pd.Spec.Tolerations {
+					@shared.Toleration(
+						tol.Key,
+						fmt.Sprintf("%v", tol.Effect),
+						tol.TolerationSeconds,
+					)
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Tolerations present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ podLabels(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Labels ({ len(pd.Labels) })</h2>
+		<div class="flex flex-wrap gap-2">
+			if len(pd.Labels) > 0 {
+				for _, key := range shared.SortedKeys(pd.Labels) {
+					@shared.Label(key, pd.Labels[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Labels present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ podAnnotations(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Annotations ({ len(pd.Annotations) })</h2>
+		<div class="mt-3 space-y-2 text-sm">
+			if len(pd.Annotations) > 0 {
+				for _, key := range shared.SortedKeys(pd.Annotations) {
+					@shared.Annotation(key, pd.Annotations[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Annotations present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ podEvents(pd *corev1.Pod) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Recent Events (5)</h2>
+		<div class="space-y-3">
+			<div class="border-l-4 border-green-500 pl-4 py-2 bg-gray-50">
+				<div class="flex justify-between items-start mb-1">
+					<span class="font-medium text-gray-800">Scheduled</span>
+					<span class="text-xs text-gray-500">2m ago</span>
+				</div>
+				<div class="text-sm text-gray-600">
+					Successfully assigned geberl/my-app-5d4f8b7c9d-xk2lp to k3s-master-1
+				</div>
+				<div class="text-xs text-gray-500 mt-1">Source: default-scheduler</div>
+			</div>
+			<div class="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50">
+				<div class="flex justify-between items-start mb-1">
+					<span class="font-medium text-gray-800">Pulling</span>
+					<span class="text-xs text-gray-500">2m ago</span>
+				</div>
+				<div class="text-sm text-gray-600">Pulling image "docker.io/library/nginx:1.25.3"</div>
+				<div class="text-xs text-gray-500 mt-1">Source: kubelet, k3s-master-1</div>
+			</div>
+			<div class="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50">
+				<div class="flex justify-between items-start mb-1">
+					<span class="font-medium text-gray-800">Pulled</span>
+					<span class="text-xs text-gray-500">2m ago</span>
+				</div>
+				<div class="text-sm text-gray-600">Successfully pulled image "docker.io/library/nginx:1.25.3"</div>
+				<div class="text-xs text-gray-500 mt-1">Source: kubelet, k3s-master-1</div>
+			</div>
+			<div class="border-l-4 border-green-500 pl-4 py-2 bg-gray-50">
+				<div class="flex justify-between items-start mb-1">
+					<span class="font-medium text-gray-800">Created</span>
+					<span class="text-xs text-gray-500">2m ago</span>
+				</div>
+				<div class="text-sm text-gray-600">Created container app</div>
+				<div class="text-xs text-gray-500 mt-1">Source: kubelet, k3s-master-1</div>
+			</div>
+			<div class="border-l-4 border-green-500 pl-4 py-2 bg-gray-50">
+				<div class="flex justify-between items-start mb-1">
+					<span class="font-medium text-gray-800">Started</span>
+					<span class="text-xs text-gray-500">2m ago</span>
+				</div>
+				<div class="text-sm text-gray-600">Started container app</div>
+				<div class="text-xs text-gray-500 mt-1">Source: kubelet, k3s-master-1</div>
+			</div>
+		</div>
+	</div>
+}

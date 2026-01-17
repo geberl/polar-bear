@@ -1,0 +1,121 @@
+package info
+
+import (
+	"fmt"
+	"strconv"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/store"
+	"polar-bear/internal/web/view/shared"
+)
+
+templ View(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	nss []*corev1.Namespace,
+	stats store.Stats,
+) {
+	@shared.Base("Info", start, cfg.DevMode, rm, nss, "", "") {
+		<header class="py-8">
+			<h3 class="pb-3"><a class="hover:underline" href="/">Home</a></h3>
+			<h1 class="text-3xl font-extrabold">Info</h1>
+		</header>
+		<div class="space-y-5">
+			@panelBuild(rm)
+			@panelGo(rm)
+			@panelInstance(rm)
+			@panelConfig(cfg)
+			@panelImages()
+			@panelDataStore(stats)
+		</div>
+	}
+}
+
+templ panelBuild(rm *runtimemeta.RuntimeMeta) {
+	@shared.PropertyPanel("Build") {
+		@shared.PropertyRow("Version", rm.Version)
+		@shared.PropertyRow("Revision", rm.Revision)
+		@shared.PropertyRow("Revision Short", rm.RevisionShort)
+		@shared.PropertyRow("Last Commit", rm.LastCommit.Format(time.RFC3339))
+		@shared.PropertyRow("Dirty Build", fmt.Sprintf("%t", rm.DirtyBuild))
+	}
+}
+
+templ panelGo(rm *runtimemeta.RuntimeMeta) {
+	@shared.PropertyPanel("Go") {
+		@shared.PropertyRow("Version", rm.GoVersion)
+		@shared.PropertyRow("Arch", rm.GoArch)
+		@shared.PropertyRow("OS", rm.GoOS)
+	}
+}
+
+templ panelInstance(rm *runtimemeta.RuntimeMeta) {
+	@shared.PropertyPanel("Instance") {
+		@shared.PropertyRow("Hostname", rm.HostName)
+		@shared.PropertyRow("Path", rm.Path)
+		@shared.PropertyRow("Start Time", rm.StartTime.Format(time.RFC3339))
+	}
+}
+
+templ panelConfig(cfg *config.Config) {
+	@shared.PropertyPanel("Config") {
+		@shared.PropertyRow("Cluster Name", cfg.ClusterName)
+		@shared.PropertyRow("Dev Mode", strconv.FormatBool(cfg.DevMode))
+		@shared.PropertyRow("Listen Address", cfg.HTTPListenAddress)
+		@shared.PropertyRow("Metrics Address", cfg.MetricsListenAddress)
+	}
+}
+
+templ panelImages() {
+	@shared.PropertyPanel("Bundled Images") {
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesDeploymentSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Deployment</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.DockerSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Docker</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesIngressSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Ingress</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesNodeSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Node</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesPodSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Pod</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesReplicaSetSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">ReplicaSet</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesServiceSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">Service</span>
+		</div>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesStatefulSetSvg()
+			<span class="text-gray-600 flex-grow text-left pl-1">StatefulSet</span>
+		</div>
+	}
+}
+
+templ panelDataStore(stats store.Stats) {
+	@shared.PropertyPanel("Data Store Stats") {
+		@shared.PropertyRow("Hits", fmt.Sprintf("%d", stats.Hits))
+		@shared.PropertyRow("Misses", fmt.Sprintf("%d", stats.Misses))
+		@shared.PropertyRow("Evictions", fmt.Sprintf("%d", stats.Evictions))
+		@shared.PropertyRow("Eviction Weight", fmt.Sprintf("%d", stats.EvictionWeight))
+		@shared.PropertyRow("Load Successes", fmt.Sprintf("%d", stats.LoadSuccesses))
+		@shared.PropertyRow("Load Failures", fmt.Sprintf("%d", stats.LoadFailures))
+		@shared.PropertyRow("Total Load Time", fmt.Sprintf("%s", stats.TotalLoadTime.String()))
+	}
+}

@@ -1,0 +1,38 @@
+package shared
+
+import "fmt"
+
+const badgeStyle = "font-bold uppercase text-xs px-3 py-1 rounded-full"
+
+func getBackgroundColor(color string) string {
+	switch color {
+	case "yellow":
+		return "bg-yellow-200"
+	case "green":
+		return "bg-green-200"
+	case "blue":
+		return "bg-blue-200"
+	case "red":
+		return "bg-red-200"
+	default:
+		return "bg-gray-200"
+	}
+}
+func getTextColor(color string) string {
+	switch color {
+	case "yellow":
+		return "text-yellow-500"
+	case "green":
+		return "text-green-500"
+	case "blue":
+		return "text-blue-500"
+	case "red":
+		return "text-red-500"
+	default:
+		return "text-gray-500"
+	}
+}
+
+templ Badge(text string, color string) {
+	<div class={ fmt.Sprintf("%s %s %s", getBackgroundColor(color), getTextColor(color), badgeStyle) }>{ text }</div>
+}

@@ -1,0 +1,162 @@
+package deployment
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+)
+
+templ DetailView(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	ns string,
+	name string,
+	deploy *appsv1.Deployment,
+	nss []*corev1.Namespace,
+) {
+	@shared.Base("Deployment", start, cfg.DevMode, rm, nss, "", ns) {
+		<header class="py-8">
+			<h3 class="pb-3"><a class="hover:underline" href={ shared.DeploymentsLink(ns) }>Deployments</a></h3>
+			<h1 class="text-3xl font-extrabold">{ name }</h1>
+		</header>
+		<div class="space-y-5">
+			if deploy != nil {
+				@panelInformation(deploy)
+				@panelSelector(deploy)
+				@panelLabels(deploy)
+				@panelAnnotations(deploy)
+			} else {
+				<div class="px-6 py-3 bg-white shadow-md rounded-lg">
+					<div class="py-3" id="na">Deployment <i>{ name }</i> not found in Namespace <i>{ ns }</i></div>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ panelInformation(deploy *appsv1.Deployment) {
+	@shared.PropertyPanel("Deployment Information") {
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Created</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ deploy.CreationTimestamp.UTC().Format(time.RFC3339) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Namespace</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					<a href={ shared.NamespaceLink(deploy.Namespace) } class="text-blue-600 hover:underline">
+						{ deploy.Namespace }
+					</a>
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Resource Version</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ deploy.ResourceVersion }
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ panelSelector(deploy *appsv1.Deployment) {
+	@shared.PropertyPanel("Selector") {
+		@shared.PropertyRow("Match Labels",
+			FormatMapString(deploy.Spec.Selector.MatchLabels),
+		)
+		@shared.PropertyRow("Match Expression",
+			FormatLabelSelectorRequirements(deploy.Spec.Selector.MatchExpressions),
+		)
+	}
+}
+
+func FormatMapString(m map[string]string) string {
+	if len(m) == 0 {
+		return "none"
+	}
+
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	pairs := make([]string, 0, len(m))
+	for _, k := range keys {
+		pairs = append(pairs, fmt.Sprintf("%s=%s", k, m[k]))
+	}
+
+	return strings.Join(pairs, ", ")
+}
+
+func FormatLabelSelectorRequirements(reqs []metav1.LabelSelectorRequirement) string {
+	if len(reqs) == 0 {
+		return "none"
+	}
+
+	parts := make([]string, 0, len(reqs))
+	for _, req := range reqs {
+		var part string
+		switch req.Operator {
+		case metav1.LabelSelectorOpIn:
+			part = fmt.Sprintf("%s in (%s)", req.Key, strings.Join(req.Values, ", "))
+		case metav1.LabelSelectorOpNotIn:
+			part = fmt.Sprintf("%s notin (%s)", req.Key, strings.Join(req.Values, ", "))
+		case metav1.LabelSelectorOpExists:
+			part = req.Key
+		case metav1.LabelSelectorOpDoesNotExist:
+			part = fmt.Sprintf("!%s", req.Key)
+		default:
+			part = fmt.Sprintf("%s %s (%s)", req.Key, req.Operator, strings.Join(req.Values, ", "))
+		}
+		parts = append(parts, part)
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+templ panelLabels(deploy *appsv1.Deployment) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Labels ({ len(deploy.Labels) })</h2>
+		<div class="flex flex-wrap gap-2">
+			if len(deploy.Labels) > 0 {
+				for _, key := range shared.SortedKeys(deploy.Labels) {
+					@shared.Label(key, deploy.Labels[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Labels present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ panelAnnotations(deploy *appsv1.Deployment) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Annotations ({ len(deploy.Annotations) })</h2>
+		<div class="mt-3 space-y-2 text-sm">
+			if len(deploy.Annotations) > 0 {
+				for _, key := range shared.SortedKeys(deploy.Annotations) {
+					@shared.Annotation(key, deploy.Annotations[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Annotations present
+				</span>
+			}
+		</div>
+	</div>
+}

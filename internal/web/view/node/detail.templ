@@ -1,0 +1,310 @@
+package node
+
+import (
+	"fmt"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+)
+
+templ DetailView(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	name string,
+	no *corev1.Node,
+	nss []*corev1.Namespace,
+) {
+	@shared.Base("Node", start, cfg.DevMode, rm, nss, "Nodes", "") {
+		<header class="py-8">
+			<h3 class="pb-3"><a class="hover:underline" href={ shared.NodesLink() }>Nodes</a></h3>
+			<h1 class="text-3xl font-extrabold">{ name }</h1>
+		</header>
+		<div class="space-y-5">
+			if no != nil {
+				@panelStatus(no)
+				@panelInformation(no)
+				@panelResources(no)
+				@panelNetworkAddresses(no)
+				@panelDaemonEndpoints(no)
+				@panelTaints(no)
+				@panelLabels(no)
+				@panelAnnotations(no)
+				@panelContainerImages(no)
+			} else {
+				<div class="px-6 py-3 bg-white shadow-md rounded-lg">
+					<div class="py-3" id="na">Node <i>{ name }</i> not found</div>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ panelStatus(no *corev1.Node) {
+	@shared.PropertyPanel("Node Status & Conditions") {
+		<div class="flex justify-between">
+			<span class="text-gray-600">Ready:</span>
+			switch getNodeConditionStatus(corev1.NodeReady, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("True", "green")
+				case corev1.ConditionFalse:
+					@shared.Badge("False", "red")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+		<div class="flex justify-between">
+			<span class="text-gray-600">Memory Pressure:</span>
+			switch getNodeConditionStatus(corev1.NodeMemoryPressure, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("True", "red")
+				case corev1.ConditionFalse:
+					@shared.Badge("False", "green")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+		<div class="flex justify-between">
+			<span class="text-gray-600">Disk Pressure:</span>
+			switch getNodeConditionStatus(corev1.NodeDiskPressure, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("True", "red")
+				case corev1.ConditionFalse:
+					@shared.Badge("False", "green")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+		<div class="flex justify-between">
+			<span class="text-gray-600">PID Pressure:</span>
+			switch getNodeConditionStatus(corev1.NodePIDPressure, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("True", "red")
+				case corev1.ConditionFalse:
+					@shared.Badge("False", "green")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+		<div class="flex justify-between">
+			<span class="text-gray-600">Network Unavailable:</span>
+			switch getNodeConditionStatus(corev1.NodeNetworkUnavailable, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("True", "red")
+				case corev1.ConditionFalse:
+					@shared.Badge("False", "green")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+	}
+}
+
+templ panelInformation(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Node Information</h2>
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Created</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ no.CreationTimestamp.UTC().Format(time.RFC3339) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Machine ID</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.MachineID) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">System UUID</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.SystemUUID) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Boot ID</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.BootID) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Kernel Version</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.KernelVersion) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">OS Image</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.OSImage) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Container Runtime</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.ContainerRuntimeVersion) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Kubelet Version</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.KubeletVersion) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Architecture</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.Architecture) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Operating System</div>
+				<div class="font-mono text-sm bg-gray-50 p-2 rounded truncate">
+					{ fmt.Sprintf("%v", no.Status.NodeInfo.OperatingSystem) }
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ panelResources(no *corev1.Node) {
+	@shared.PropertyPanel("Resources") {
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<div>
+				<h3 class="text-lg font-medium mb-3 text-gray-700">Capacity</h3>
+				<div class="space-y-3">
+					@shared.PropertyRow("CPU", no.Status.Capacity.Cpu().String())
+					@shared.PropertyRow("Memory", shared.ToHumanReadableBytes(no.Status.Capacity.Memory().Value()))
+					@shared.PropertyRow("Ephemeral Storage",
+						shared.ToHumanReadableBytes(no.Status.Capacity.StorageEphemeral().Value()))
+					@shared.PropertyRow("Pods", no.Status.Capacity.Pods().String())
+				</div>
+			</div>
+			<div>
+				<h3 class="text-lg font-medium mb-3 text-gray-700">Allocatable</h3>
+				<div class="space-y-3">
+					@shared.PropertyRow("CPU", no.Status.Allocatable.Cpu().String())
+					@shared.PropertyRow("Memory", shared.ToHumanReadableBytes(no.Status.Allocatable.Memory().Value()))
+					@shared.PropertyRow("Ephemeral Storage",
+						shared.ToHumanReadableBytes(no.Status.Allocatable.StorageEphemeral().Value()))
+					@shared.PropertyRow("Pods", no.Status.Allocatable.Pods().String())
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ panelNetworkAddresses(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Network Addresses</h2>
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Internal IP</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					{ getNodeAddress(no.Status.Addresses, corev1.NodeInternalIP ) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">External IP</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					{ getNodeAddress(no.Status.Addresses, corev1.NodeExternalIP) }
+				</div>
+			</div>
+			<div class="space-y-2">
+				<div class="text-gray-600 text-sm">Hostname</div>
+				<div class="font-mono bg-gray-50 p-2 rounded">
+					{ getNodeAddress(no.Status.Addresses, corev1.NodeHostName) }
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+templ panelDaemonEndpoints(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Daemon Endpoints</h2>
+		<div class="space-y-3">
+			@shared.PropertyRow(
+				"Kubelet Port",
+				fmt.Sprintf("%d", no.Status.DaemonEndpoints.KubeletEndpoint.Port),
+			)
+		</div>
+	</div>
+}
+
+templ panelContainerImages(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-1 text-gray-800">Container Images ({ len(no.Status.Images) })</h2>
+		<h4 class="text-sm mb-4 text-gray-400">
+			Incomplete list, just the <i>x most recently used</i> ones (as per kubelet configuration parameter
+			<code>--node-status-max-images</code>, default 50)
+		</h4>
+		<div class="space-y-3">
+			if len(no.Status.Images) > 0 {
+				for _, image := range sortedContainerImages(no.Status.Images) {
+					@shared.Image(image.Names, image.SizeBytes)
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Images present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ panelTaints(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Taints ({ len(no.Spec.Taints) })</h2>
+		<div class="flex flex-wrap gap-2">
+			if len(no.Spec.Taints) > 0 {
+				for _, taint := range no.Spec.Taints {
+					@shared.Taint(taint.Key, taint.Value, string(taint.Effect))
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Taints applied
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ panelLabels(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Labels ({ len(no.Labels) })</h2>
+		<div class="flex flex-wrap gap-2">
+			if len(no.Labels) > 0 {
+				for _, key := range shared.SortedKeys(no.Labels) {
+					@shared.Label(key, no.Labels[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Labels present
+				</span>
+			}
+		</div>
+	</div>
+}
+
+templ panelAnnotations(no *corev1.Node) {
+	<div class="px-6 py-4 bg-white shadow-md rounded-lg">
+		<h2 class="text-xl font-semibold mb-4 text-gray-800">Annotations ({ len(no.Annotations) })</h2>
+		<div class="mt-3 space-y-2 text-sm">
+			if len(no.Annotations) > 0 {
+				for _, key := range shared.SortedKeys(no.Annotations) {
+					@shared.Annotation(key, no.Annotations[key])
+				}
+			} else {
+				<span class="text-gray-500 text-sm">
+					No Annotations present
+				</span>
+			}
+		</div>
+	</div>
+}

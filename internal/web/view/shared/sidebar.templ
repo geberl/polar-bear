@@ -1,0 +1,157 @@
+package shared
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	"polar-bear/internal/runtimemeta"
+)
+
+templ Sidebar(
+	rm *runtimemeta.RuntimeMeta,
+	nss []*corev1.Namespace,
+	activeClusterItem string,
+	activeNamespaceItem string,
+) {
+	@mobileToggleButton()
+	<div id="sidebar-wrapper">
+		@SidebarState("closed", rm, nss, activeClusterItem, activeNamespaceItem)
+	</div>
+}
+
+templ mobileToggleButton() {
+	<button
+		hx-get="/_open-sidebar"
+		hx-target="#sidebar-wrapper"
+		hx-swap="innerHTML"
+		class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-500 rounded-lg sm:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+	>
+		<span class="sr-only">Open sidebar</span>
+		<svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+			<path
+				clip-rule="evenodd"
+				fill-rule="evenodd"
+				d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"
+			></path>
+		</svg>
+	</button>
+}
+
+const sidebarOpenClasses = `
+fixed top-0 left-0 z-40 w-64 h-screen transition-transform duration-300 translate-x-0 sm:translate-x-0`
+const SidebarClosedClasses = `
+fixed top-0 left-0 z-40 w-64 h-screen transition-transform duration-300 -translate-x-full sm:translate-x-0`
+
+templ SidebarState(
+	state string,
+	rm *runtimemeta.RuntimeMeta,
+	nss []*corev1.Namespace,
+	activeClusterItem string,
+	activeNamespaceItem string,
+) {
+	switch state {
+		case "open":
+			@innerSidebar(sidebarOpenClasses, rm, nss, activeClusterItem, activeNamespaceItem)
+		case "closed":
+			@innerSidebar(SidebarClosedClasses, rm, nss, activeClusterItem, activeNamespaceItem)
+		default:
+			<p>Sidebar state undefined</p>
+	}
+}
+
+templ innerSidebar(
+	class string,
+	rm *runtimemeta.RuntimeMeta,
+	nss []*corev1.Namespace,
+	activeClusterItem string,
+	activeNamespaceItem string,
+) {
+	<aside class={ class } aria-label="Sidebar">
+		<div class="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+			<div class="flex items-center mb-5">
+				<img src="/static/logo.svg" class="h-8 me-3 sm:h-9" alt="Polar Bear Logo"/>
+				<span class="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
+					Polar Bear
+				</span>
+				<span class="ml-2 mt-1.5 text-xs whitespace-nowrap text-gray-300 italic font-light dark:text-gray-600">
+					{ rm.Version }
+				</span>
+			</div>
+			<div
+				hx-get="/_close-sidebar"
+				hx-target="#sidebar-wrapper"
+				hx-trigger="click"
+				class="text-black sm:hidden pb-4 dark:text-white"
+			>
+				Close sidebar
+			</div>
+			<ul class="flex flex-col space-y-2">
+				<li>
+					@clusterList(activeClusterItem)
+					@namespaceList(nss, activeNamespaceItem)
+				</li>
+			</ul>
+		</div>
+	</aside>
+}
+
+templ clusterList(
+	activeClusterItem string,
+) {
+	<strong class="block text-xs font-medium uppercase text-gray-400">Cluster</strong>
+	<ul class="mt-2 mb-4 space-y-1">
+		@clusterItem("Overview", "cluster", activeClusterItem)
+		@clusterItem("Nodes", "no", activeClusterItem)
+	</ul>
+}
+
+templ clusterItem(
+	name string,
+	link string,
+	activeClusterItem string,
+) {
+	<li>
+		if activeClusterItem == name {
+			<a href={ ClusterLink(link) } class="block rounded-lg px-4 py-2 text-sm font-medium bg-gray-600 text-gray-100">
+				{ name }
+			</a>
+		} else {
+			<a
+				href={ ClusterLink(link) }
+				class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+			>
+				{ name }
+			</a>
+		}
+	</li>
+}
+
+templ namespaceList(
+	nss []*corev1.Namespace,
+	activeNamespaceItem string,
+) {
+	<strong class="block text-xs font-medium uppercase text-gray-400">Namespaces</strong>
+	<ul class="mt-2 space-y-1">
+		for _, ns := range(nss) {
+			@namespaceItem(ns, activeNamespaceItem)
+		}
+	</ul>
+}
+
+templ namespaceItem(
+	ns *corev1.Namespace,
+	activeNamespaceItem string,
+) {
+	<li>
+		if activeNamespaceItem == ns.Name {
+			<a href={ NamespaceLink(ns.Name) } class="block rounded-lg px-4 py-2 text-sm font-medium bg-gray-600 text-gray-100">
+				{ ns.Name }
+			</a>
+		} else {
+			<a
+				href={ NamespaceLink(ns.Name) }
+				class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+			>
+				{ ns.Name }
+			</a>
+		}
+	</li>
+}

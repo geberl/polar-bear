@@ -1,0 +1,88 @@
+package node
+
+import (
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"polar-bear/internal/config"
+	"polar-bear/internal/runtimemeta"
+	"polar-bear/internal/web/view/shared"
+)
+
+templ ListView(
+	start *time.Time,
+	cfg *config.Config,
+	rm *runtimemeta.RuntimeMeta,
+	nos []*corev1.Node,
+	nss []*corev1.Namespace,
+) {
+	@shared.Base("Nodes", start, cfg.DevMode, rm, nss, "Nodes", "") {
+		<header class="py-8">
+			<h1 class="text-3xl font-extrabold">Nodes</h1>
+		</header>
+		<div class="space-y-5">
+			<div class="px-6 py-3 bg-white shadow-md rounded-lg">
+				@NodeList(nos)
+			</div>
+		</div>
+	}
+}
+
+templ NodeList(nos []*corev1.Node) {
+	<div class="divide-y divide-solid">
+		if len(nos) > 0 {
+			for _, no := range nos {
+				@NodeItem(no)
+			}
+		} else {
+			No Nodes found
+		}
+	</div>
+}
+
+templ NodeItem(no *corev1.Node) {
+	<div class="py-3" id={ no.Name }>
+		<div class="flex flex-row justify-between">
+			@shared.KubernetesNodeSvg()
+			<a
+				class="hover:underline font-semibold flex-grow text-left pl-1 whitespace-nowrap overflow-hidden text-ellipsis"
+				href={ shared.NodeLink(no.Name) }
+			>
+				{ no.Name }
+			</a>
+			switch getNodeConditionStatus(corev1.NodeReady, no.Status.Conditions) {
+				case corev1.ConditionTrue:
+					@shared.Badge("Ready", "green")
+				case corev1.ConditionFalse:
+					@shared.Badge("Not Ready", "red")
+				default:
+					@shared.Badge("Unknown", "gray")
+			}
+		</div>
+		<div class="text-gray-600 group relative w-full pl-8 whitespace-nowrap overflow-hidden text-ellipsis">
+			<span>{ no.Status.NodeInfo.OSImage }</span>
+			<span>| { no.Status.NodeInfo.Architecture }</span>
+			<span>| Kernel { no.Status.NodeInfo.KernelVersion }</span>
+			<span>| Kubelet { no.Status.NodeInfo.KubeletVersion }</span>
+		</div>
+	</div>
+}
+
+func getNodeConditionStatus(ct corev1.NodeConditionType, cs []corev1.NodeCondition) corev1.ConditionStatus {
+	for _, c := range cs {
+		if c.Type == ct {
+			return c.Status
+		}
+	}
+	return corev1.ConditionUnknown
+}
+
+func getNodeAddress(addrs []corev1.NodeAddress, addrType corev1.NodeAddressType) string {
+	for _, addr := range addrs {
+		if addr.Type == addrType {
+			return addr.Address
+		}
+	}
+	return "not found"
+}
