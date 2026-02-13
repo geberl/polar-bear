@@ -1,4 +1,4 @@
-FROM golang:1.25.5-alpine3.23 AS builder
+FROM golang:1.26.0-alpine3.23 AS builder
 RUN apk add --no-cache git ca-certificates
 WORKDIR /app
 COPY go.mod go.sum /app/
