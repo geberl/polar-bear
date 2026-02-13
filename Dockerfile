@@ -12,7 +12,7 @@ RUN VERSION=$(git describe --tags --always --dirty=-dev 2>/dev/null || echo "dev
     -o server.bin \
     ./cmd/server
 
-FROM alpine:3.23.2
+FROM alpine:3.23.3
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /app/server.bin ./server

@@ -2,9 +2,9 @@
 
 *A simple read-only Kubernetes dashboard.*
 
-![Alpine](https://img.shields.io/badge/alpine-3.23.2-0D597F.svg)
 ![Templ](https://img.shields.io/badge/templ-0.3.960-DBBD30.svg)
 ![Go](https://img.shields.io/badge/go-1.26.0-00ADD8.svg)
+![Alpine](https://img.shields.io/badge/alpine-3.23.3-0D597F.svg)
 ![Tailwind CSS](https://img.shields.io/badge/tailwind-4.1.18-8A2BE2.svg)
 ![HTMX](https://img.shields.io/badge/htmx-2.0.8-3D72D7.svg)
 ![HTMX-ext-websocket](https://img.shields.io/badge/htmx_ext_ws-2.0.4-3D72D7.svg)
